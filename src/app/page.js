@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import withAuth from './withAuth';
 
 function Home() {
   const [pageData, setPageData] = useState({ name: '', description: '', image: '', instructions: '' });
