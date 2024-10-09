@@ -1,21 +1,21 @@
-// withAuth.js
+// ProtectedRoute.js
+
+'use client';
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation'; // Import useRouter
 
-const withAuth = (WrappedComponent) => {
-    return (props) => {
-        const router = useRouter();
+const ProtectedRoute = ({ children }) => {
+    const router = useRouter(); // Initialize useRouter
 
-        useEffect(() => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                // If no token, redirect to login page
-                router.push('/auth/login');
-            }
-        }, [router]);
+    useEffect(() => {
+        const token = localStorage.getItem('token'); // Get token from localStorage
+        if (!token) {
+            // If no token, redirect to the login page
+            router.push('/auth/login'); // Adjust the path as needed
+        }
+    }, [router]);
 
-        return <WrappedComponent {...props} />;
-    };
+    return <>{children}</>; // Render children if the user is authenticated
 };
 
-export default withAuth;
+export default ProtectedRoute;
