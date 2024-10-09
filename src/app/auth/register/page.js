@@ -28,7 +28,7 @@ export default function SignUpForm() {
     setSuccess('');
 
     try {
-      const response = await axios.post('http://localhost:8000/api/auth/register', formData); // Update the URL if necessary
+      const response = await axios.post('https://mern-ordring-food-backend.onrender.com/api/auth/register', formData); // Update the URL if necessary
       setSuccess(response.data.message); // Display success message from the API
     } catch (err) {
       setError(err.response?.data?.message || 'Error registering user');

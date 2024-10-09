@@ -24,7 +24,7 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:8000/api/auth/login', formData); // Replace with your actual API URL
+      const response = await axios.post('https://mern-ordring-food-backend.onrender.com/api/auth/login', formData); // Replace with your actual API URL
       const { token, user } = response.data;
 
       // Save token in localStorage or cookies

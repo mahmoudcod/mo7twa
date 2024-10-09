@@ -14,7 +14,7 @@ function Home() {
     const fetchPageData = async () => {
       try {
         const token = localStorage.getItem('token'); // Retrieve the token from localStorage
-        const response = await axios.get('http://localhost:8000/api/pages/6704dd0fc7a795da55f7ccce', {
+        const response = await axios.get('https://mern-ordring-food-backend.onrender.com/api/pages/6704dd0fc7a795da55f7ccce', {
           headers: {
             Authorization: `Bearer ${token}`,  // Pass the token in the Authorization header
           }
@@ -39,7 +39,7 @@ function Home() {
   const handleGenerate = () => {
     if (selectedOption === 'copyPaste' && promptText) {
       // Call the /generate API with user input and instructions
-      axios.post('http://localhost:8000/api/pages/generate', {
+      axios.post('https://mern-ordring-food-backend.onrender.com/api/pages/generate', {
         userInput: promptText,
         instructions: pageData.instructions  // Include instructions
       }, {
@@ -59,7 +59,7 @@ function Home() {
       formData.append('file', file);
       formData.append('instructions', pageData.instructions);  // Include instructions in the formData
 
-      axios.post('http://localhost:8000/api/pages/generate', formData, {
+      axios.post('https://mern-ordring-food-backend.onrender.com/api/pages/generate', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${localStorage.getItem('token')}`
