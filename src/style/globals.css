@@ -278,6 +278,38 @@ a {
   /* Preserve new lines and spaces */
 }
 
+.access-denied {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 2rem;
+  text-align: center;
+  background-color: #fff5f5;
+  border: 1px solid #feb2b2;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.access-denied h2 {
+  color: #e53e3e;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.access-denied p {
+  color: #4a5568;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.access-denied .access-expired {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background-color: #fff0f0;
+  border: 1px solid #ffa6a6;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #c53030;
+}
 
  /* Preserve new lines ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]] spaces */
 /* globals.css */

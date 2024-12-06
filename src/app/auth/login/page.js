@@ -15,25 +15,31 @@ export default function LoginPage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prevState => ({
+    setFormData((prevState) => ({
       ...prevState,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('https://mern-ordring-food-backend.onrender.com/api/auth/login', formData); // Replace with your actual API URL
+      const response = await axios.post(
+        'https://mern-ordring-food-backend.onrender.com/api/auth/login',
+        formData
+      );
       const { token, user } = response.data;
 
-      // Save token in localStorage or cookies
+      // Save token and user data in localStorage or cookies
       localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      console.log('User:', user);
 
-      // Redirect to a dashboard or home page after successful login
       router.push('/');
     } catch (error) {
-      setErrorMessage(error.response ? error.response.data.message : 'Login failed');
+      setErrorMessage(
+        error.response ? error.response.data.message : 'Login failed'
+      );
     }
   };
 
@@ -68,7 +74,9 @@ export default function LoginPage() {
           />
         </div>
 
-        <button type="submit" className="submit-button">Log In</button>
+        <button type="submit" className="submit-button">
+          Log In
+        </button>
       </form>
       <p className="register-link">
         Don&apos;t have an account? <Link href="/auth/register">Sign up</Link>

@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaSignOutAlt } from 'react-icons/fa'; // Import the logout icon
+import { FaSignOutAlt } from 'react-icons/fa';
 
 const Header = () => {
     const [categories, setCategories] = useState([]);
@@ -13,20 +13,30 @@ const Header = () => {
             try {
                 const response = await fetch('https://mern-ordring-food-backend.onrender.com/api/categories');
                 const data = await response.json();
-                setCategories(data.categories);
-                console.log(data.categories);
+                
+                // Filter out any categories that have no published pages
+                const publishedCategories = data.categories.filter(category => 
+                    category.pages.some(page => page.status === 'published')
+                );
+                
+                // For the remaining categories, only include their published pages
+                const categoriesWithPublishedPages = publishedCategories.map(category => ({
+                    ...category,
+                    pages: category.pages.filter(page => page.status === 'published')
+                }));
+                
+                setCategories(categoriesWithPublishedPages);
             } catch (error) {
                 console.error('Error fetching categories:', error);
             }
         };
-
         fetchCategories();
     }, []);
 
     // Logout function
     const handleLogout = () => {
-        localStorage.removeItem('authToken'); // Assuming 'authToken' is the key used for storing the token
-        router.push('/auth/login'); // Redirect to login page
+        localStorage.removeItem('authToken');
+        router.push('/auth/login');
     };
 
     return (
@@ -57,12 +67,12 @@ const Header = () => {
                 </nav>
                 <div className="logout">
                     <button onClick={handleLogout} className="logout-btn">
-                        <FaSignOutAlt className="logout-icon" /> {/* Use the logout icon */}
+                        <FaSignOutAlt className="logout-icon" />
                     </button>
                 </div>
             </div>
         </header>
-    );      
+    );
 };
 
 export default Header;
