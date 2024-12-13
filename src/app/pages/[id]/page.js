@@ -34,7 +34,7 @@ function Pages() {
       }
 
       try {
-        const response = await axios.get(`http://ub.mo7tawa.store/api/pages/${pageId}`, {
+        const response = await axios.get(`https://ub.mo7tawa.store/api/pages/${pageId}`, {
           headers: { Authorization: `Bearer ${token}` },
           params: { productId: activeProduct.productId }
         });
@@ -93,7 +93,7 @@ function Pages() {
     }
 
     setLoading(true);
-    const endpoint = 'http://ub.mo7tawa.store/api/pages/generate';
+    const endpoint = 'https://ub.mo7tawa.store/api/pages/generate';
     const headers = {
       Authorization: `Bearer ${token}`,
     };

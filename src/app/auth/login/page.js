@@ -25,7 +25,7 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       const response = await axios.post(
-        'http://ub.mo7tawa.store/api/auth/login',
+        'https://ub.mo7tawa.store/api/auth/login',
         formData
       );
       const { token, user } = response.data;

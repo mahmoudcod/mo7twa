@@ -12,7 +12,7 @@ const Header = () => {
         const fetchCategories = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('http://ub.mo7tawa.store/api/categories', {
+                const response = await fetch('https://ub.mo7tawa.store/api/categories', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }

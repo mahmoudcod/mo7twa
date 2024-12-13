@@ -23,7 +23,7 @@ const ProductsPage = () => {
         }
 
         const response = await axios.get(
-          'http://ub.mo7tawa.store/api/products',
+          'https://ub.mo7tawa.store/api/products',
           {
             headers: { Authorization: `Bearer ${token}` }
           }
