@@ -25,7 +25,7 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       const response = await axios.post(
-        'https://mern-ordring-food-backend.onrender.com/api/auth/login',
+        'http://ub.mo7tawa.store/api/auth/login',
         formData
       );
       const { token, user } = response.data;
@@ -33,7 +33,6 @@ export default function LoginPage() {
       // Save token and user data in localStorage or cookies
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-      console.log('User:', user);
 
       router.push('/');
     } catch (error) {

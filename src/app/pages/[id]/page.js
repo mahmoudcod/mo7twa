@@ -34,7 +34,7 @@ function Pages() {
       }
 
       try {
-        const response = await axios.get(`https://mern-ordring-food-backend.onrender.com/api/pages/${pageId}`, {
+        const response = await axios.get(`http://ub.mo7tawa.store/api/pages/${pageId}`, {
           headers: { Authorization: `Bearer ${token}` },
           params: { productId: activeProduct.productId }
         });
@@ -93,7 +93,7 @@ function Pages() {
     }
 
     setLoading(true);
-    const endpoint = 'https://mern-ordring-food-backend.onrender.com/api/pages/generate';
+    const endpoint = 'http://ub.mo7tawa.store/api/pages/generate';
     const headers = {
       Authorization: `Bearer ${token}`,
     };
@@ -118,7 +118,7 @@ function Pages() {
     axios
       .post(endpoint, data, { headers })
       .then((response) => {
-        console.log('Server response:', response.data);
+        
         if (response.data) {
           if (response.data.output) {
             setAiOutput(response.data.output);

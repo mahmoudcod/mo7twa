@@ -23,7 +23,7 @@ const ProductsPage = () => {
         }
 
         const response = await axios.get(
-          'https://mern-ordring-food-backend.onrender.com/api/products',
+          'http://ub.mo7tawa.store/api/products',
           {
             headers: { Authorization: `Bearer ${token}` }
           }
