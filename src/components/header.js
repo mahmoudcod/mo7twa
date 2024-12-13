@@ -1,4 +1,4 @@
-'use client';
+"use client"
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaSignOutAlt } from 'react-icons/fa';
@@ -11,19 +11,27 @@ const Header = () => {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const response = await fetch('https://mern-ordring-food-backend.onrender.com/api/categories');
+                const token = localStorage.getItem('token');
+                const response = await fetch('https://mern-ordring-food-backend.onrender.com/api/categories', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 const data = await response.json();
+                console.log('API Response:', data);
                 
                 // Filter out any categories that have no published pages
                 const publishedCategories = data.categories.filter(category => 
                     category.pages.some(page => page.status === 'published')
                 );
+                console.log('Published Categories:', publishedCategories);
                 
                 // For the remaining categories, only include their published pages
                 const categoriesWithPublishedPages = publishedCategories.map(category => ({
                     ...category,
                     pages: category.pages.filter(page => page.status === 'published')
                 }));
+                console.log('Categories with Published Pages:', categoriesWithPublishedPages);
                 
                 setCategories(categoriesWithPublishedPages);
             } catch (error) {
