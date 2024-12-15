@@ -5,9 +5,21 @@ import { FaSignOutAlt } from 'react-icons/fa';
 
 const Header = () => {
     const [categories, setCategories] = useState([]);
+    const [products, setProducts] = useState([]);
+    const [activeProduct, setActiveProduct] = useState(null);
     const router = useRouter();
 
-    // Fetch categories and pages
+    // Fetch user data and set active product
+    useEffect(() => {
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        if (userData.products) {
+            setProducts(userData.products);
+            const active = userData.products.find(p => p.isActive && !p.isExpired);
+            setActiveProduct(active);
+        }
+    }, []);
+
+    // Fetch categories and pages without product access check
     useEffect(() => {
         const fetchCategories = async () => {
             try {
@@ -19,16 +31,11 @@ const Header = () => {
                 });
                 const data = await response.json();
                 
-                // Filter out any categories that have no published pages
-                const publishedCategories = data.categories.filter(category => 
-                    category.pages.some(page => page.status === 'published')
-                );
-                
-                // For the remaining categories, only include their published pages
-                const categoriesWithPublishedPages = publishedCategories.map(category => ({
+                // Only filter for published pages, not by product access
+                const categoriesWithPublishedPages = data.categories.map(category => ({
                     ...category,
                     pages: category.pages.filter(page => page.status === 'published')
-                }));
+                })).filter(category => category.pages.length > 0);
                 
                 setCategories(categoriesWithPublishedPages);
             } catch (error) {
@@ -38,9 +45,31 @@ const Header = () => {
         fetchCategories();
     }, []);
 
+    // Switch active product
+    const handleProductSwitch = (productId) => {
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        const updatedProducts = userData.products.map(p => ({
+            ...p,
+            isActive: p.productId === productId
+        }));
+        
+        const updatedUserData = {
+            ...userData,
+            products: updatedProducts
+        };
+        
+        localStorage.setItem('user', JSON.stringify(updatedUserData));
+        setProducts(updatedProducts);
+        setActiveProduct(updatedProducts.find(p => p.productId === productId));
+        
+        // Refresh the current page to update content based on new active product
+        router.refresh();
+    };
+
     // Logout function
     const handleLogout = () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
         router.push('/auth/login');
     };
 
@@ -53,7 +82,7 @@ const Header = () => {
                 <nav className="nav">
                     <ul className="nav-list">
                         {categories.map((category) => (
-                            <li key={category.id} className="category-item">
+                            <li key={category._id} className="category-item">
                                 {category.name}
                                 <ul className="dropdown">
                                     {category.pages.map((page) => (
@@ -70,12 +99,157 @@ const Header = () => {
                         ))}
                     </ul>
                 </nav>
-                <div className="logout">
+                <div className="user-controls">
                     <button onClick={handleLogout} className="logout-btn">
                         <FaSignOutAlt className="logout-icon" />
                     </button>
                 </div>
             </div>
+
+            <style jsx>{`
+                .responsive-header {
+                    background: white;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    position: sticky;
+                    top: 0;
+                    z-index: 1000;
+                }
+
+                .header {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 1rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                }
+
+                .logo {
+                    height: 40px;
+                    width: auto;
+                }
+
+                .nav-list {
+                    display: flex;
+                    gap: 2rem;
+                    list-style: none;
+                    margin: 0;
+                    padding: 0;
+                }
+
+                .category-item {
+                    position: relative;
+                    padding: 0.5rem 1rem;
+                    cursor: pointer;
+                    transition: color 0.3s;
+                }
+
+                .category-item:hover {
+                    color: #007bff;
+                }
+
+                .category-item:hover .dropdown {
+                    display: block;
+                }
+
+                .dropdown {
+                    display: none;
+                    position: absolute;
+                    top: 100%;
+                    left: 0;
+                    background: white;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    border-radius: 4px;
+                    min-width: 200px;
+                    z-index: 1000;
+                }
+
+                .dropdown-item {
+                    padding: 0.75rem 1rem;
+                    transition: background-color 0.3s;
+                }
+
+                .dropdown-item:hover {
+                    background-color: #f8f9fa;
+                }
+
+                .user-controls {
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                }
+
+                .product-switcher {
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                }
+
+                .product-select {
+                    padding: 0.5rem 2rem 0.5rem 1rem;
+                    border: 1px solid #e1e1e1;
+                    border-radius: 4px;
+                    background: white;
+                    font-size: 0.9rem;
+                    appearance: none;
+                    cursor: pointer;
+                }
+
+                .switch-icon {
+                    position: absolute;
+                    right: 0.5rem;
+                    pointer-events: none;
+                    color: #666;
+                }
+
+                .logout-btn {
+                    background: none;
+                    border: none;
+                    padding: 0.5rem;
+                    cursor: pointer;
+                    color: #666;
+                    transition: color 0.3s;
+                }
+
+                .logout-btn:hover {
+                    color: #dc3545;
+                }
+
+                .logout-icon {
+                    font-size: 1.2rem;
+                }
+
+                @media (max-width: 768px) {
+                    .header {
+                        flex-direction: column;
+                        gap: 1rem;
+                    }
+
+                    .nav-list {
+                        flex-direction: column;
+                        gap: 1rem;
+                    }
+
+                    .dropdown {
+                        position: static;
+                        box-shadow: none;
+                        display: none;
+                    }
+
+                    .category-item:hover .dropdown {
+                        display: block;
+                    }
+
+                    .user-controls {
+                        width: 100%;
+                        justify-content: space-between;
+                    }
+
+                    .product-select {
+                        width: 100%;
+                    }
+                }
+            `}</style>
         </header>
     );
 };

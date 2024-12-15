@@ -20,23 +20,38 @@ function Pages() {
   const [loading, setLoading] = useState(false);
   const [accessError, setAccessError] = useState(null);
   const [remainingUsage, setRemainingUsage] = useState(0);
+  const [products, setProducts] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   // Get user and token from localStorage
   const userData = JSON.parse(localStorage.getItem('user') || '{}');
   const token = localStorage.getItem('token');
-  const activeProduct = userData.products?.find(product => product.isActive && !product.isExpired);
+
+  // Initialize products and selected product
+  useEffect(() => {
+    if (userData.products) {
+      const activeProducts = userData.products.filter(p => !p.isExpired);
+      setProducts(activeProducts);
+      
+      // Set the active product as selected, or the first available product
+      const active = activeProducts.find(p => p.isActive) || activeProducts[0];
+      setSelectedProduct(active);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchPageData = async () => {
-      if (!pageId || !activeProduct) {
+      if (!pageId || !selectedProduct) {
         setAccessError('No active product found or page ID missing');
         return;
       }
 
       try {
         const response = await axios.get(`https://ub.mo7tawa.store/api/pages/${pageId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { productId: activeProduct.productId }
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'X-Product-ID': selectedProduct.productId
+          }
         });
 
         setPageData({
@@ -45,11 +60,13 @@ function Pages() {
           image: response.data.image,
           instructions: response.data.userInstructions,
         });
+        
+        setAccessError(null);
       } catch (error) {
         console.error('Error fetching data:', error);
         
         if (error.response && error.response.status === 403) {
-          setAccessError('You do not have access to this page');
+          setAccessError('You do not have access to this page with the selected product');
         } else {
           setAccessError('An error occurred while fetching page data');
         }
@@ -57,17 +74,35 @@ function Pages() {
     };
 
     fetchPageData();
-  }, [pageId, token, activeProduct?.productId]);
+  }, [pageId, token, selectedProduct]);
 
-  const handleGenerate = () => {
+  // Handle product change
+  const handleProductChange = (productId) => {
+    const selected = products.find(p => p.productId === productId);
+    setSelectedProduct(selected);
+    
+    // Update active status in localStorage
+    const updatedProducts = userData.products.map(p => ({
+      ...p,
+      isActive: p.productId === productId
+    }));
+    
+    const updatedUserData = {
+      ...userData,
+      products: updatedProducts
+    };
+    localStorage.setItem('user', JSON.stringify(updatedUserData));
+  };
+
+  const handleGenerate = async () => {
     // Validate required data
     if (!token) {
       alert('Please log in to use this feature');
       return;
     }
 
-    if (!activeProduct) {
-      alert('No active product found');
+    if (!selectedProduct) {
+      alert('No product selected');
       return;
     }
 
@@ -87,7 +122,7 @@ function Pages() {
     }
 
     // Check remaining usage
-    if (activeProduct.remainingUsage <= 0) {
+    if (selectedProduct.remainingUsage <= 0) {
       alert('You have no remaining usage for this product');
       return;
     }
@@ -96,74 +131,81 @@ function Pages() {
     const endpoint = 'https://ub.mo7tawa.store/api/pages/generate';
     const headers = {
       Authorization: `Bearer ${token}`,
+      'X-Product-ID': selectedProduct.productId
     };
-    let data;
-    if (selectedOption === 'copyPaste') {
-      data = { 
-        userInput: promptText, 
-        instructions: pageData.instructions,
-        productId: activeProduct.productId,
-        pageId: pageId
-      };
-    } else {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('instructions', pageData.instructions);
-      formData.append('productId', activeProduct.productId);
-      formData.append('pageId', pageId); 
-      data = formData;
-      headers['Content-Type'] = 'multipart/form-data';
-    }
 
-    axios
-      .post(endpoint, data, { headers })
-      .then((response) => {
-        
-        if (response.data) {
-          if (response.data.output) {
-            setAiOutput(response.data.output);
+    try {
+      let data;
+      if (selectedOption === 'copyPaste') {
+        data = { 
+          userInput: promptText, 
+          instructions: pageData.instructions,
+          productId: selectedProduct.productId,
+          pageId: pageId
+        };
+      } else {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('instructions', pageData.instructions);
+        formData.append('productId', selectedProduct.productId);
+        formData.append('pageId', pageId);
+        data = formData;
+        headers['Content-Type'] = 'multipart/form-data';
+      }
+
+      const response = await axios.post(endpoint, data, { headers });
+      
+      if (response.data) {
+        if (response.data.output) {
+          setAiOutput(response.data.output);
+          
+          // Update remaining usage in state and localStorage
+          if (response.data.remainingUsage !== undefined) {
+            setRemainingUsage(response.data.remainingUsage);
             
-            // Update remaining usage
-            if (response.data.remainingUsage !== undefined) {
-              setRemainingUsage(response.data.remainingUsage);
-              
-              // Update localStorage with new remaining usage
-              const updatedUserData = {
-                ...userData,
-                products: userData.products.map(product => 
-                  product.productId === activeProduct.productId 
-                    ? { ...product, remainingUsage: response.data.remainingUsage }
-                    : product
-                )
-              };
-              localStorage.setItem('user', JSON.stringify(updatedUserData));
-            }
-          } else {
-            console.error('Missing output in response:', response.data);
-            alert('Server response is missing required data. Check console for details.');
+            // Update localStorage
+            const updatedUserData = {
+              ...userData,
+              products: userData.products.map(product => 
+                product.productId === selectedProduct.productId 
+                  ? { 
+                      ...product, 
+                      remainingUsage: response.data.remainingUsage,
+                      usageCount: response.data.usageCount
+                    }
+                  : product
+              )
+            };
+            localStorage.setItem('user', JSON.stringify(updatedUserData));
+            
+            // Update products state
+            setProducts(prevProducts => 
+              prevProducts.map(product =>
+                product.productId === selectedProduct.productId
+                  ? { 
+                      ...product, 
+                      remainingUsage: response.data.remainingUsage,
+                      usageCount: response.data.usageCount
+                    }
+                  : product
+              )
+            );
           }
         } else {
-          console.error('Empty response received');
-          alert('Received empty response from server');
+          console.error('Missing output in response:', response.data);
+          alert('Server response is missing required data');
         }
-      })
-      .catch((error) => {
-        console.error('Full error object:', error);
-        if (error.response) {
-          console.error('Error response data:', error.response.data);
-          console.error('Error response status:', error.response.status);
-          alert(`Server error: ${error.response.data.message || 'Unknown error occurred'}`);
-        } else if (error.request) {
-          console.error('No response received:', error.request);
-          alert('No response received from server. Check your internet connection.');
-        } else {
-          console.error('Error setting up request:', error.message);
-          alert('Error setting up request: ' + error.message);
-        }
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      }
+    } catch (error) {
+      console.error('Error generating response:', error);
+      if (error.response?.data?.message) {
+        alert(error.response.data.message);
+      } else {
+        alert('An error occurred while generating the response');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleExportPDF = async () => {
@@ -191,71 +233,26 @@ function Pages() {
     }
   };
 
-  const formatAiOutput = (output) => {
-    const sections = output.split('**').filter((section) => section.trim() !== '');
-
-    return (
-      <div className="formatted-output">
-        {sections.map((section, index) => {
-          const [title, content] = section.split(':').map((s) => s.trim());
-          if (content) {
-            return (
-              <div key={index} className="section">
-                <h3>{title}</h3>
-                {content.split('-').map((item, i) => (
-                  <p key={i}>{item.trim()}</p>
-                ))}
-              </div>
-            );
-          } else {
-            return <h2 key={index}>{title}</h2>;
-          }
-        })}
-      </div>
-    );
-  };
-
   // If there's an access error, show error message
-  if (accessError || !activeProduct) {
+  if (accessError) {
     return (
       <div className="error-page">
         <div className="error-content">
           <div className="error-icon-wrapper">
-            {accessError ? (
-              <svg className="error-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M15 9L9 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M9 9L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            ) : (
-              <svg className="error-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M12 16V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M12 8H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            )}
+            <svg className="error-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M15 9L9 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M9 9L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
           
-          <h1 className="error-title">
-            {accessError ? 'Access Denied' : 'Subscription Required'}
-          </h1>
-          
-          <p className="error-message">
-            {accessError ? accessError : 'You need an active subscription to access this feature'}
-          </p>
+          <h1 className="error-title">Access Denied</h1>
+          <p className="error-message">{accessError}</p>
           
           <div className="error-actions">
-            <button 
-              className="primary-button" 
-              onClick={() => router.push(accessError ? '/' : '/')}
-            >
-              <span>{accessError ? 'View plans' : 'View Plans'}</span>
-              <svg className="button-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M12 5L19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+            <button className="primary-button" onClick={() => router.push('/')}>
+              Return Home
             </button>
-            
           </div>
         </div>
 
@@ -277,11 +274,10 @@ function Pages() {
             text-align: center;
             max-width: 480px;
             width: 100%;
-            animation: slideUp 0.5s ease-out;
           }
 
           .error-icon-wrapper {
-            background: ${accessError ? '#FEE2E2' : '#E0E7FF'};
+            background: #FEE2E2;
             width: 80px;
             height: 80px;
             border-radius: 50%;
@@ -294,7 +290,7 @@ function Pages() {
           .error-icon {
             width: 40px;
             height: 40px;
-            color: ${accessError ? '#DC2626' : '#4F46E5'};
+            color: #DC2626;
           }
 
           .error-title {
@@ -302,7 +298,6 @@ function Pages() {
             font-size: 2rem;
             font-weight: 700;
             margin-bottom: 1rem;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
           }
 
           .error-message {
@@ -310,102 +305,24 @@ function Pages() {
             font-size: 1.125rem;
             line-height: 1.75;
             margin-bottom: 2rem;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-          }
-
-          .error-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
           }
 
           .primary-button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
             background: #4F46E5;
             color: white;
-            padding: 1rem 2rem;
-            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
             font-weight: 600;
             border: none;
             cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 1rem;
-            width: 100%;
+            transition: all 0.2s;
           }
 
           .primary-button:hover {
             background: #4338CA;
-            transform: translateY(-2px);
-          }
-
-          .secondary-button {
-            background: transparent;
-            color: #4F46E5;
-            padding: 1rem 2rem;
-            border-radius: 12px;
-            font-weight: 600;
-            border: 2px solid #E5E7EB;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 1rem;
-            width: 100%;
-          }
-
-          .secondary-button:hover {
-            border-color: #4F46E5;
-            background: #F3F4F6;
-          }
-
-          .button-icon {
-            width: 20px;
-            height: 20px;
-          }
-
-          @keyframes slideUp {
-            from {
-              opacity: 0;
-              transform: translateY(20px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-
-          @media (max-width: 640px) {
-            .error-content {
-              padding: 2rem;
-            }
-
-            .error-title {
-              font-size: 1.75rem;
-            }
-
-            .error-message {
-              font-size: 1rem;
-            }
+            transform: translateY(-1px);
           }
         `}</style>
-      </div>
-    );
-  }
-
-  // If no active product, show product activation message
-  if (!activeProduct) {
-    return (
-      <div className="container">
-        <Header />
-        <div className="error-container">
-          <div className="error-icon">ℹ️</div>
-          <h2>Subscription Required</h2>
-          <p className="error-message">You need an active subscription to access this feature. Choose a plan that suits your needs.</p>
-          <button className="primary-button" onClick={() => router.push('/products')}>
-            View Available Plans
-          </button>
-        </div>
       </div>
     );
   }
@@ -416,25 +333,40 @@ function Pages() {
       <section className="section-one">
         <h1 className="page-title">{pageData.name}</h1>
         <img src={pageData.image} alt={pageData.name} className="page-image" />
-        <ReactMarkdown 
-          className="page-description"
-          components={{
-            h1: ({node, ...props}) => <h1 style={{color: '#1a1a1a', fontSize: '2rem', fontWeight: 'bold'}} {...props} />,
-            h2: ({node, ...props}) => <h2 style={{color: '#333', fontSize: '1.75rem', fontWeight: 'bold'}} {...props} />,
-            h3: ({node, ...props}) => <h3 style={{color: '#555', fontSize: '1.5rem', fontWeight: 'bold'}} {...props} />,
-            p: ({node, ...props}) => <p style={{color: '#666', fontSize: '1.1rem', lineHeight: '1.6'}} {...props} />,
-            a: ({node, ...props}) => <a style={{color: '#007bff', textDecoration: 'underline'}} target="_blank" {...props} />,
-            img: ({node, ...props}) => <img style={{maxWidth: '50%', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'}} {...props} />
-          }}
-        >{pageData.description}</ReactMarkdown>
+        <ReactMarkdown className="page-description">{pageData.description}</ReactMarkdown>
       </section>
 
       <section className="section-two">
+        {/* Product Selector */}
+        {products.length > 1 && (
+          <div className="product-selector">
+            <label htmlFor="product-select">Select Product:</label>
+            <select
+              id="product-select"
+              value={selectedProduct?.productId || ''}
+              onChange={(e) => handleProductChange(e.target.value)}
+              className="product-select"
+            >
+              {products.map(product => (
+                <option 
+                  key={product.productId} 
+                  value={product.productId}
+                  disabled={product.isExpired}
+                >
+                  {product.name} ({product.remainingUsage} credits)
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Remaining Usage Display */}
         <div className="usage-info">
           <div className="usage-badge">
             <span>Credits Remaining:</span>
-            <span className="usage-count">{activeProduct.remainingUsage || 0}</span>
+            <span className="usage-count">
+              {selectedProduct?.remainingUsage || 0}
+            </span>
           </div>
         </div>
 
@@ -490,9 +422,9 @@ function Pages() {
           )}
 
           <button 
-            className={`generate-btn ${(loading || (activeProduct.remainingUsage || 0) <= 0) ? 'disabled' : ''}`}
+            className={`generate-btn ${(loading || !selectedProduct || selectedProduct.remainingUsage <= 0) ? 'disabled' : ''}`}
             onClick={handleGenerate} 
-            disabled={loading || (activeProduct.remainingUsage || 0) <= 0}
+            disabled={loading || !selectedProduct || selectedProduct.remainingUsage <= 0}
           >
             {loading ? (
               <span className="loading-text">
@@ -530,25 +462,9 @@ function Pages() {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
-        .error-container {
-          background: white;
-          border-radius: 12px;
-          padding: 3rem;
+        .section-one {
+          margin-bottom: 3rem;
           text-align: center;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          max-width: 600px;
-          margin: 4rem auto;
-        }
-
-        .error-icon {
-          font-size: 3rem;
-          margin-bottom: 1rem;
-        }
-
-        .error-message {
-          color: #666;
-          margin: 1rem 0 2rem;
-          line-height: 1.6;
         }
 
         .page-title {
@@ -558,24 +474,19 @@ function Pages() {
           margin-bottom: 1rem;
         }
 
-        .page-description {
-          font-size: 1.1rem;
-          color: #666;
-          margin-bottom: 2rem;
-          line-height: 1.6;
-        }
-
-        .section-one {
-          margin-bottom: 3rem;
-          text-align: center;
-        }
-
         .page-image {
           width: 100%;
           max-width: 800px;
           height: auto;
           border-radius: 12px;
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          margin-bottom: 2rem;
+        }
+
+        .page-description {
+          font-size: 1.1rem;
+          color: #666;
+          line-height: 1.6;
         }
 
         .section-two {
@@ -583,6 +494,22 @@ function Pages() {
           border-radius: 12px;
           padding: 2rem;
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-selector {
+          margin-bottom: 1.5rem;
+          padding: 1rem;
+          background: #f8f9fa;
+          border-radius: 8px;
+        }
+
+        .product-select {
+          width: 100%;
+          padding: 0.5rem;
+          margin-top: 0.5rem;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          font-size: 1rem;
         }
 
         .usage-info {
@@ -613,7 +540,6 @@ function Pages() {
         .radio-group {
           display: flex;
           gap: 2rem;
-          margin-bottom: 1rem;
         }
 
         .radio-label {
@@ -764,23 +690,6 @@ function Pages() {
         .formatted-output {
           line-height: 1.6;
           color: #333;
-        }
-
-        .primary-button {
-          background: #007bff;
-          color: white;
-          border: none;
-          padding: 0.75rem 1.5rem;
-          border-radius: 6px;
-          font-size: 1rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.3s;
-        }
-
-        .primary-button:hover {
-          background: #0056b3;
-          transform: translateY(-1px);
         }
 
         @keyframes spin {
