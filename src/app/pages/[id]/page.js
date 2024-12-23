@@ -23,6 +23,7 @@ function Pages() {
   const [remainingUsage, setRemainingUsage] = useState(0);
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // Get user and token from localStorage
   const userData = JSON.parse(localStorage.getItem('user') || '{}');
@@ -81,7 +82,6 @@ function Pages() {
 
     const fetchPageData = async () => {
       if (!pageId || !selectedProduct) {
-        setAccessError('No active product found or page ID missing');
         return;
       }
 
@@ -112,6 +112,8 @@ function Pages() {
         } else {
           setAccessError('An error occurred while fetching page data');
         }
+      } finally {
+        setIsInitialLoading(false);
       }
     };
 
@@ -324,7 +326,16 @@ function Pages() {
     }
   };
 
-  // If there's an access error, show error message
+  // Show loading state while initial data is being fetched
+  if (isInitialLoading) {
+    return (
+      <div className={styles.loading_container}>
+        <div className={styles.loading_spinner}></div>
+      </div>
+    );
+  }
+
+  // If there's an access error after loading, show error message
   if (accessError) {
     return (
       <div className={styles.error_page}>
