@@ -11,12 +11,36 @@ const Header = () => {
 
     // Fetch user data and set active product
     useEffect(() => {
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        if (userData.products) {
-            setProducts(userData.products);
-            const active = userData.products.find(p => p.isActive && !p.isExpired);
-            setActiveProduct(active);
-        }
+        const fetchUserData = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const userData = JSON.parse(localStorage.getItem('user') || '{}');
+                if (!userData || !userData.id) {
+                    return;
+                }
+                const response = await fetch(`https://ub.mo7tawa.store/api/auth/users/${userData.id}/product-access`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.productAccess) {
+                    setProducts(data.productAccess.map(access => ({
+                        ...access,
+                        productId: access.productId._id,
+                        productName: access.productId.name
+                    })));
+                    const active = data.productAccess.find(p => p.isActive && !p.isExpired);
+                    setActiveProduct(active);
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+            }
+        };
+        fetchUserData();
     }, []);
 
     // Fetch categories and pages without product access check
@@ -46,24 +70,53 @@ const Header = () => {
     }, []);
 
     // Switch active product
-    const handleProductSwitch = (productId) => {
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        const updatedProducts = userData.products.map(p => ({
-            ...p,
-            isActive: p.productId === productId
-        }));
-        
-        const updatedUserData = {
-            ...userData,
-            products: updatedProducts
-        };
-        
-        localStorage.setItem('user', JSON.stringify(updatedUserData));
-        setProducts(updatedProducts);
-        setActiveProduct(updatedProducts.find(p => p.productId === productId));
-        
-        // Refresh the current page to update content based on new active product
-        router.refresh();
+    const handleProductSwitch = async (productId) => {
+        try {
+            const token = localStorage.getItem('token');
+            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+            if (!userData || !userData.id) {
+                return;
+            }
+            
+            // Update product access on the server
+            await Promise.all(products.map(async (product) => {
+                await fetch(`https://ub.mo7tawa.store/api/auth/admin/users/${userData.id}/product-access/${product.productId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        isActive: product.productId === productId
+                    })
+                });
+            }));
+
+            // Fetch updated user data
+            const response = await fetch(`https://ub.mo7tawa.store/api/auth/users/${userData.id}/product-access`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+             if (data.productAccess) {
+                    setProducts(data.productAccess.map(access => ({
+                        ...access,
+                        productId: access.productId._id,
+                        productName: access.productId.name
+                    })));
+                    const active = data.productAccess.find(p => p.isActive && !p.isExpired);
+                    setActiveProduct(active);
+                }
+            
+            // Refresh the current page to update content based on new active product
+            router.refresh();
+        } catch (error) {
+            console.error('Error switching product:', error);
+        }
     };
 
     // Logout function
