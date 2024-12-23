@@ -14,7 +14,6 @@ function Pages() {
 
   // State variables
   const [pageData, setPageData] = useState({ name: '', description: '', image: '', instructions: '' });
-  const [selectedOption, setSelectedOption] = useState('copyPaste');
   const [promptText, setPromptText] = useState('');
   const [file, setFile] = useState(null);
   const [aiOutput, setAiOutput] = useState('');
@@ -158,13 +157,8 @@ function Pages() {
       return;
     }
 
-    if (selectedOption === 'copyPaste' && !promptText.trim()) {
-      alert('Please enter some text before generating');
-      return;
-    }
-
-    if (selectedOption === 'fileUpload' && !file) {
-      alert('Please select a file before generating');
+    if (!promptText.trim() && !file) {
+      alert('Please enter text or select a file before generating');
       return;
     }
 
@@ -187,23 +181,18 @@ function Pages() {
     };
 
     try {
-      let data;
-      if (selectedOption === 'copyPaste') {
-        data = {
-          userInput: promptText,
-          instructions: pageData.instructions,
-          productId: selectedProduct.productId,
-          pageId: pageId
-        };
-      } else {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('instructions', pageData.instructions);
-        formData.append('productId', selectedProduct.productId);
-        formData.append('pageId', pageId);
-        data = formData;
-        headers['Content-Type'] = 'multipart/form-data';
+      const formData = new FormData();
+      if (promptText.trim()) {
+        formData.append('userInput', promptText);
       }
+      if (file) {
+        formData.append('file', file);
+      }
+      formData.append('instructions', pageData.instructions);
+      formData.append('productId', selectedProduct.productId);
+      formData.append('pageId', pageId);
+      headers['Content-Type'] = 'multipart/form-data';
+      const data = formData;
 
       const response = await axios.post(endpoint, data, { headers });
 
@@ -465,59 +454,32 @@ function Pages() {
         </div>
 
         <div className={styles.input_section}>
-          <div className={styles.radio_group}>
-            <label className={styles.radio_label}>
-              <input
-                type="radio"
-                value="copyPaste"
-                checked={selectedOption === 'copyPaste'}
-                onChange={(e) => setSelectedOption(e.target.value)}
-                className={styles.radio_input}
-                disabled={loading}
-              />
-              <span className={styles.radio_text}>Copy & Paste Text</span>
-            </label>
-            <label className={styles.radio_label}>
-              <input
-                type="radio"
-                value="fileUpload"
-                checked={selectedOption === 'fileUpload'}
-                onChange={(e) => setSelectedOption(e.target.value)}
-                className={styles.radio_input}
-                disabled={loading}
-              />
-              <span className={styles.radio_text}>Upload File</span>
-            </label>
+          <div className={styles.input_group}>
+            <label className={styles.input_label}>Enter your text :</label>
+            <textarea
+              className={styles.textarea_field}
+              value={promptText}
+              onChange={(e) => setPromptText(e.target.value)}
+              placeholder="Type or paste your text here..."
+              disabled={loading}
+            />
           </div>
 
-          {selectedOption === 'copyPaste' ? (
-            <div className={styles.input_group}>
-              <label className={styles.input_label}>Enter your text:</label>
-              <textarea
-                className={styles.textarea_field}
-                value={promptText}
-                onChange={(e) => setPromptText(e.target.value)}
-                placeholder="Type or paste your text here..."
+          <div className={styles.input_group}>
+            <label className={styles.input_label}>Upload your file:</label>
+            <div className={styles.file_upload_container}>
+              <input
+                type="file"
+                onChange={(e) => setFile(e.target.files[0])}
+                className={styles.file_input}
+                id="file-upload"
                 disabled={loading}
               />
+              <label htmlFor="file-upload" className={styles.file_upload_label}>
+                {file ? file.name : 'Choose a file'}
+              </label>
             </div>
-          ) : (
-            <div className={styles.input_group}>
-              <label className={styles.input_label}>Upload your file:</label>
-              <div className={styles.file_upload_container}>
-                <input
-                  type="file"
-                  onChange={(e) => setFile(e.target.files[0])}
-                  className={styles.file_input}
-                  id="file-upload"
-                  disabled={loading}
-                />
-                <label htmlFor="file-upload" className={styles.file_upload_label}>
-                  {file ? file.name : 'Choose a file'}
-                </label>
-              </div>
-            </div>
-          )}
+          </div>
 
           <button
             className={`${styles.generate_btn} ${(loading || !selectedProduct || selectedProduct.remainingUsage <= 0) ? styles.disabled : ''}`}
