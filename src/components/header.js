@@ -1,12 +1,14 @@
 "use client"
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaSignOutAlt } from 'react-icons/fa';
+import { FaSignOutAlt, FaBars, FaTimes } from 'react-icons/fa';
 
 const Header = () => {
     const [categories, setCategories] = useState([]);
     const [products, setProducts] = useState([]);
     const [activeProduct, setActiveProduct] = useState(null);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [activeCategoryId, setActiveCategoryId] = useState(null);
     const router = useRouter();
 
     // Fetch user data and set active product
@@ -76,20 +78,42 @@ const Header = () => {
     return (
         <header className="responsive-header">
             <div className="header">
-                <div className="logo-div">
-                    <img src="/logo.jpg" alt="Logo" className="logo" />
+                <div className="header-main">
+                    <div className="logo-div">
+                        <img src="/logo.jpg" alt="Logo" className="logo" />
+                    </div>
+                    <button className="menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                        {isMenuOpen ? <FaTimes /> : <FaBars />}
+                    </button>
                 </div>
-                <nav className="nav">
+                <nav className={`nav ${isMenuOpen ? 'nav-open' : ''}`}>
                     <ul className="nav-list">
                         {categories.map((category) => (
                             <li key={category._id} className="category-item">
-                                {category.name}
-                                <ul className="dropdown">
+                                <div 
+                                    className="category-header"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (activeCategoryId === category._id) {
+                                            setActiveCategoryId(null);
+                                        } else {
+                                            setActiveCategoryId(category._id);
+                                        }
+                                    }}
+                                >
+                                    {category.name}
+                                    <span className="dropdown-arrow">▼</span>
+                                </div>
+                                <ul className={`dropdown ${activeCategoryId === category._id ? 'dropdown-open' : ''}`}>
                                     {category.pages.map((page) => (
                                         <li
                                             key={page._id}
                                             className="dropdown-item"
-                                            onClick={() => router.push(`/pages/${page._id}`)}
+                                            onClick={() => {
+                                                router.push(`/pages/${page._id}`);
+                                                setIsMenuOpen(false);
+                                                setActiveCategoryId(null);
+                                            }}
                                         >
                                             {page.name}
                                         </li>
@@ -119,6 +143,9 @@ const Header = () => {
                     max-width: 1200px;
                     margin: 0 auto;
                     padding: 1rem;
+                }
+
+                .header-main {
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
@@ -127,6 +154,20 @@ const Header = () => {
                 .logo {
                     height: 40px;
                     width: auto;
+                }
+
+                .menu-toggle {
+                    display: none;
+                    background: none;
+                    border: none;
+                    font-size: 1.5rem;
+                    cursor: pointer;
+                    color: #333;
+                    padding: 0.5rem;
+                }
+
+                .nav {
+                    margin-top: 1rem;
                 }
 
                 .nav-list {
@@ -146,10 +187,6 @@ const Header = () => {
 
                 .category-item:hover {
                     color: #007bff;
-                }
-
-                .category-item:hover .dropdown {
-                    display: block;
                 }
 
                 .dropdown {
@@ -179,29 +216,6 @@ const Header = () => {
                     gap: 1rem;
                 }
 
-                .product-switcher {
-                    position: relative;
-                    display: flex;
-                    align-items: center;
-                }
-
-                .product-select {
-                    padding: 0.5rem 2rem 0.5rem 1rem;
-                    border: 1px solid #e1e1e1;
-                    border-radius: 4px;
-                    background: white;
-                    font-size: 0.9rem;
-                    appearance: none;
-                    cursor: pointer;
-                }
-
-                .switch-icon {
-                    position: absolute;
-                    right: 0.5rem;
-                    pointer-events: none;
-                    color: #666;
-                }
-
                 .logout-btn {
                     background: none;
                     border: none;
@@ -219,34 +233,101 @@ const Header = () => {
                     font-size: 1.2rem;
                 }
 
+                @media (min-width: 769px) {
+                    .category-item:hover .dropdown {
+                        display: block;
+                    }
+                }
+
                 @media (max-width: 768px) {
                     .header {
-                        flex-direction: column;
-                        gap: 1rem;
+                        padding: 0.5rem 1rem;
+                    }
+
+                    .menu-toggle {
+                        display: block;
+                    }
+
+                    .nav {
+                        display: none;
+                        width: 100%;
+                        margin-top: 1rem;
+                        background: white;
+                        border-radius: 8px;
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        padding: 1rem;
+                        transition: all 0.3s ease;
+                    }
+
+                    .nav-open {
+                        display: block;
                     }
 
                     .nav-list {
                         flex-direction: column;
-                        gap: 1rem;
+                        gap: 0;
+                    }
+
+                    .category-item {
+                        border-bottom: 1px solid #eee;
+                        padding: 0;
+                    }
+
+                    .category-item:last-child {
+                        border-bottom: none;
+                    }
+
+                    .category-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 1rem;
+                        cursor: pointer;
+                        transition: background-color 0.3s ease;
+                    }
+
+                    .category-header:hover {
+                        background-color: #f8f9fa;
                     }
 
                     .dropdown {
-                        position: static;
-                        box-shadow: none;
                         display: none;
+                        position: static;
+                        background: #f8f9fa;
+                        margin: 0;
+                        transition: all 0.3s ease;
                     }
 
-                    .category-item:hover .dropdown {
+                    .dropdown-open {
                         display: block;
                     }
 
-                    .user-controls {
-                        width: 100%;
-                        justify-content: space-between;
+                    .dropdown-item {
+                        padding: 0.75rem 2rem;
+                        border-top: 1px solid #eee;
+                        font-size: 0.95rem;
+                        background-color: #fff;
+                        transition: background-color 0.3s ease;
                     }
 
-                    .product-select {
-                        width: 100%;
+                    .dropdown-item:hover {
+                        background-color: #e9ecef;
+                    }
+
+                    .dropdown-arrow {
+                        font-size: 0.8rem;
+                        transition: transform 0.3s ease;
+                    }
+
+                    .category-item:has(.dropdown-open) .dropdown-arrow {
+                        transform: rotate(180deg);
+                    }
+
+                    .user-controls {
+                        margin-top: 1rem;
+                        justify-content: flex-end;
+                        border-top: 1px solid #eee;
+                        padding-top: 1rem;
                     }
                 }
             `}</style>

@@ -84,61 +84,87 @@ export default function LoginPage() {
       <style jsx>{`
         .login-container {
           max-width: 400px;
-          margin: 0 auto;
-          padding: 20px;
-          background-color: #f9f9f9;
-          border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          margin: 40px auto;
+          padding: 32px;
+          background-color: white;
+          border-radius: 16px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
 
         h2 {
           text-align: center;
-          color: #333;
-          margin-bottom: 20px;
+          color: #1a1a1a;
+          margin-bottom: 32px;
+          font-size: 28px;
+          font-weight: 600;
         }
 
         .form-group {
-          margin-bottom: 15px;
+          margin-bottom: 24px;
         }
 
         label {
           display: block;
-          margin-bottom: 5px;
-          color: #666;
+          margin-bottom: 8px;
+          color: #4a4a4a;
+          font-weight: 500;
+          font-size: 14px;
         }
 
         input {
           width: 100%;
-          padding: 8px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
+          padding: 12px 16px;
+          border: 2px solid #e8e8e8;
+          border-radius: 8px;
           font-size: 16px;
+          transition: all 0.3s ease;
+          background-color: #fafafa;
+        }
+
+        input:focus {
+          outline: none;
+          border-color: #4a90e2;
+          background-color: white;
+          box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
         }
 
         .submit-button {
           width: 100%;
-          padding: 10px;
+          padding: 14px;
           background-color: #4a90e2;
           color: white;
           border: none;
-          border-radius: 4px;
+          border-radius: 8px;
           font-size: 16px;
+          font-weight: 600;
           cursor: pointer;
-          transition: background-color 0.3s;
+          transition: all 0.3s ease;
+          margin-top: 8px;
         }
 
         .submit-button:hover {
           background-color: #357abd;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+        }
+
+        .submit-button:active {
+          transform: translateY(0);
+          box-shadow: none;
         }
 
         .register-link {
           text-align: center;
-          margin-top: 15px;
+          margin-top: 24px;
+          color: #666;
+          font-size: 14px;
         }
 
         .register-link a {
           color: #4a90e2;
           text-decoration: none;
+          font-weight: 500;
+          margin-left: 4px;
         }
 
         .register-link a:hover {
@@ -146,9 +172,14 @@ export default function LoginPage() {
         }
 
         .error {
-          color: red;
-          margin-bottom: 15px;
+          color: #e53935;
+          background-color: #ffebee;
+          padding: 12px;
+          border-radius: 8px;
+          margin-bottom: 24px;
           text-align: center;
+          font-size: 14px;
+          border: 1px solid rgba(229, 57, 53, 0.2);
         }
       `}</style>
     </div>
