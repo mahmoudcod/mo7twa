@@ -20,6 +20,13 @@ function Pages() {
   const [aiOutput, setAiOutput] = useState('');
   const [loading, setLoading] = useState(false);
   const [accessError, setAccessError] = useState(null);
+
+  useEffect(() => {
+    if (aiOutput) {
+      const outputSection = document.getElementById('output-section');
+      outputSection?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [aiOutput]);
   const [remainingUsage, setRemainingUsage] = useState(0);
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -61,6 +68,13 @@ function Pages() {
           // Set the active product as selected, or the first available product
           const active = activeProducts.find(p => p.isActive) || activeProducts[0];
           setSelectedProduct(active);
+          if (active) {
+            const prevRemainingUsage = remainingUsage;
+            setRemainingUsage(active.remainingUsage);
+            if (prevRemainingUsage !== active.remainingUsage) {
+              setSelectedProduct(active);
+            }
+          }
         }
       } catch (error) {
         if (error.name === 'AbortError') return;
@@ -126,61 +140,9 @@ function Pages() {
   }, [pageId, token, selectedProduct]);
 
   // Handle product change
-  const handleProductChange = async (productId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      if (!userData || !userData.id) {
-        return;
-      }
-
-      setLoading(true);
-
-      // Update product access on the server
-      await Promise.all(products.map(async (product) => {
-        await fetch(`https://ub.mo7tawa.store/api/auth/admin/users/${userData.id}/product-access/${product.productId}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            isActive: product.productId === productId
-          })
-        });
-      }));
-
-      // Fetch updated user data
-      const response = await fetch(`https://ub.mo7tawa.store/api/auth/users/${userData.id}/product-access`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!response.ok) {
-        throw new Error('HTTP error! status: ' + response.status);
-      }
-      const data = await response.json();
-      if (data.productAccess) {
-        const activeProducts = data.productAccess.filter(p => !p.isExpired).map(access => ({
-          ...access,
-          productId: access.productId._id,
-          productName: access.productId.name
-        }));
-        setProducts(activeProducts);
-
-        // Set the active product as selected, or the first available product
-        const active = activeProducts.find(p => p.isActive) || activeProducts[0];
-        setSelectedProduct(active);
-      }
-
-      // Refresh the current page to update content based on new active product
-      router.refresh();
-    } catch (error) {
-      console.error('Error switching product:', error);
-      alert('Failed to switch product. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  const handleProductChange = (productId) => {
+    const active = products.find(p => p.productId === productId);
+    setSelectedProduct(active);
   };
 
   const handleGenerate = async () => {
@@ -247,6 +209,8 @@ function Pages() {
       if (response.data) {
         if (response.data.output) {
           setAiOutput(response.data.output);
+          setPromptText('');
+          setFile(null);
 
           // Update remaining usage in state and localStorage
           if (response.data.remainingUsage !== undefined) {
@@ -263,22 +227,28 @@ function Pages() {
                     usageCount: response.data.usageCount
                   }
                   : product
-              ) || []
+              ) || [],
             };
             localStorage.setItem('user', JSON.stringify(updatedUserData));
 
             // Update products state
-            setProducts(prevProducts =>
-              prevProducts.map(product =>
+            setProducts((prevProducts) =>
+              prevProducts.map((product) =>
                 product.productId === selectedProduct.productId
                   ? {
-                    ...product,
-                    remainingUsage: response.data.remainingUsage,
-                    usageCount: response.data.usageCount
-                  }
+                      ...product,
+                      remainingUsage: response.data.remainingUsage,
+                      usageCount: response.data.usageCount,
+                    }
                   : product
               )
             );
+            // Update selectedProduct with new remainingUsage
+            setSelectedProduct(prevSelectedProduct => ({
+              ...prevSelectedProduct,
+              remainingUsage: response.data.remainingUsage,
+              usageCount: response.data.usageCount,
+            }));
           }
         } else {
           console.error('Missing output in response:', response.data);
@@ -500,7 +470,7 @@ function Pages() {
               </button>
             </div>
             <div className={styles.ai_output_box}>
-              <div className={styles.formatted_output} ref={outputRef}>
+              <div id="output-section" className={styles.formatted_output} ref={outputRef}>
                 <ReactMarkdown>{aiOutput}</ReactMarkdown>
               </div>
             </div>
