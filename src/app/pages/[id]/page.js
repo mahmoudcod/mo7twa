@@ -271,23 +271,100 @@ function Pages() {
   const handleExportPDF = async () => {
     try {
       setLoading(true);
-      const { jsPDF } = await import('jspdf');
-      const doc = new jsPDF();
+      const [{ jsPDF }, { default: html2canvas }] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas')
+      ]);
 
-      // Add title
-      doc.setFontSize(20);
-      doc.text(pageData.name || 'Generated Document', 20, 20);
+      // Get the output element
+      const element = outputRef.current;
+      if (!element) {
+        throw new Error('Output element not found');
+      }
 
-      // Add timestamp
-      doc.setFontSize(10);
-      doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 30);
+      // Create a temporary container with proper styling
+      const container = document.createElement('div');
+      container.style.cssText = `
+        width: 800px;
+        padding: 40px;
+        background: white;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        position: fixed;
+        top: 0;
+        left: -9999px;
+      `;
 
-      // Add content
-      doc.setFontSize(12);
-      const splitOutput = doc.splitTextToSize(aiOutput.replace(/\*\*/g, '\n'), 170);
-      doc.text(splitOutput, 20, 40);
+      // Add title and timestamp
+      container.innerHTML = `
+        <h1 style="font-size: 20px; margin-bottom: 10px;">${pageData.name || 'Generated Document'}</h1>
+        <div style="font-size: 10px; margin-bottom: 20px; color: #666;">Generated on: ${new Date().toLocaleString()}</div>
+        <div style="font-size: 12px; line-height: 1.5;">${element.innerHTML}</div>
+      `;
 
-      // Save the PDF
+      // Add to document for proper rendering
+      document.body.appendChild(container);
+
+      // Create PDF with proper dimensions
+      const doc = new jsPDF({
+        format: 'a4',
+        unit: 'px',
+        hotfixes: ['px_scaling'],
+      });
+
+      // Calculate dimensions
+      const pdfWidth = doc.internal.pageSize.getWidth();
+      const pdfHeight = doc.internal.pageSize.getHeight();
+
+      // Function to capture and add page
+      const captureAndAddPage = async (element, yOffset = 0) => {
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          windowWidth: 800,
+          height: Math.min(element.offsetHeight - yOffset, pdfHeight),
+          y: yOffset,
+          onclone: (clonedDoc) => {
+            const clonedElement = clonedDoc.body.querySelector('div');
+            clonedElement.style.transform = '';
+            clonedElement.style.webkitTransform = '';
+          }
+        });
+
+        const imgData = canvas.toDataURL('image/png', 1.0);
+        const imgWidth = pdfWidth;
+        const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+        doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
+        
+        return imgHeight;
+      };
+
+      // Capture content in multiple pages if needed
+      let yOffset = 0;
+      const totalHeight = container.offsetHeight;
+
+      while (yOffset < totalHeight) {
+        if (yOffset > 0) {
+          doc.addPage();
+        }
+
+        const pageHeight = await captureAndAddPage(container, yOffset);
+        yOffset += pdfHeight;
+      }
+
+      // Clean up
+      document.body.removeChild(container);
+
+      // Add searchable text layer (invisible)
+      doc.setTextColor(255, 255, 255); // White text
+      doc.setFontSize(1);
+      const searchableText = element.innerText
+        .replace(/[^\x00-\x7F]/g, '') // Remove non-ASCII characters
+        .trim();
+      doc.text(searchableText, 0, 0);
+
+      // Save PDF
       doc.save(`${pageData.name || 'generated'}-output.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
