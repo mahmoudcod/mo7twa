@@ -14,7 +14,7 @@
     "html2pdf.js": "^0.10.2",
     "jspdf": "^2.5.2",
     "lucide-react": "^0.441.0",
-    "next": "14.2.4",
+    "next": "14.2.15",
     "pdfmake": "^0.2.16",
     "puppeteer-html-pdf": "^4.0.8",
     "react": "^18",
