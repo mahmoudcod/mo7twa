@@ -327,21 +327,21 @@ function Pages() {
   // If there's an access error, show error message
   if (accessError) {
     return (
-      <div className="error-page">
-        <div className="error-content">
-          <div className="error-icon-wrapper">
-            <svg className="error-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <div className={styles.error_page}>
+        <div className={styles.error_content}>
+          <div className={styles.error_icon_wrapper}>
+            <svg className={styles.error_icon} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M15 9L9 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M9 9L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
 
-          <h1 className="error-title">Access Denied</h1>
-          <p className="error-message">{accessError}</p>
+          <h1 className={styles.error_title}>Access Denied</h1>
+          <p className={styles.error_message}>{accessError}</p>
 
-          <div className="error-actions">
-            <button className="primary-button" onClick={() => router.push('/')}>
+          <div className={styles.error_actions}>
+            <button className={styles.primary_button} onClick={() => router.push('/')}>
               Return Home
             </button>
           </div>
@@ -355,7 +355,6 @@ function Pages() {
     return (
       <div className={styles.loading_container}>
         <div className={styles.loading_spinner}></div>
-        <p>Loading page content...</p>
       </div>
     );
   }
