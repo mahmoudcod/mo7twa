@@ -389,7 +389,12 @@
   margin-bottom: 1rem;
 }
 
-.export_btn {
+.output_actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.export_btn, .copy_btn {
   background: #28a745;
   color: white;
   border: none;
@@ -397,16 +402,31 @@
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.export_btn:hover:not(:disabled) {
+.export_btn:hover:not(:disabled), .copy_btn:hover:not(:disabled) {
   background: #218838;
 }
 
-.export_btn:disabled {
+.export_btn:disabled, .copy_btn:disabled {
   background: #6c757d;
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+.copy_btn {
+  background: #6610f2;
+}
+
+.copy_btn:hover:not(:disabled) {
+  background: #520dc2;
+}
+
+.copy_btn.copied {
+  background: #198754;
 }
 
 .ai_output_box {

@@ -20,6 +20,7 @@ function Pages() {
   const [aiOutput, setAiOutput] = useState('');
   const [loading, setLoading] = useState(false);
   const [accessError, setAccessError] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (aiOutput) {
@@ -461,13 +462,27 @@ function Pages() {
           <div className={styles.output_section}>
             <div className={styles.output_header}>
               <h2>Generated Output</h2>
-              <button 
-                className={styles.export_btn} 
-                onClick={handleExportPDF}
-                disabled={loading}
-              >
-                {loading ? 'Exporting...' : 'Export as PDF'}
-              </button>
+              <div className={styles.output_actions}>
+                <button 
+                  className={`${styles.copy_btn} ${copied ? styles.copied : ''}`}
+                  onClick={() => {
+                    navigator.clipboard.writeText(aiOutput).then(() => {
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    });
+                  }}
+                  disabled={loading}
+                >
+                  {copied ? 'Copied!' : 'Copy Output'}
+                </button>
+                <button 
+                  className={styles.export_btn} 
+                  onClick={handleExportPDF}
+                  disabled={loading}
+                >
+                  {loading ? 'Exporting...' : 'Export as PDF'}
+                </button>
+              </div>
             </div>
             <div className={styles.ai_output_box}>
               <div id="output-section" className={styles.formatted_output} ref={outputRef}>
